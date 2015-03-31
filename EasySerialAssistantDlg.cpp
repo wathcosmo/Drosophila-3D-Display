@@ -941,8 +941,8 @@ void CEasySerialAssistantDlg::OnBnClickedVideoBtn()
 		AfxMessageBox("视频打开失败");
 		return;
 	}
-	int fps = (int) cvGetCaptureProperty(capture, CV_CAP_PROP_FPS);
-	SetTimer(VIDEO_PLAYER_EVENT, fps, NULL);
+	//int fps = (int) cvGetCaptureProperty(capture, CV_CAP_PROP_FPS);
+	SetTimer(VIDEO_PLAYER_EVENT, 1000, NULL);
 }
 
 
@@ -956,6 +956,9 @@ void CEasySerialAssistantDlg::OnTimer(UINT nIDEvent)
         CvvImage m_CvvImage;  
         m_CvvImage.CopyOf(img, 1); //复制该帧图像    
         m_CvvImage.DrawToHDC(hDC, &rect); //显示到设备的矩形框内
+		fout << body_yaw << ' ' << body_pitch << ' ' << body_roll << endl;
+		fout << lwing_yaw << ' ' << lwing_pitch << ' ' << lwing_roll << endl;
+		fout << rwing_yaw << ' ' << rwing_pitch << ' ' << rwing_roll << endl;
     }
     CDialog::OnTimer(nIDEvent);
 }

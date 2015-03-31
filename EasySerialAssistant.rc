@@ -88,7 +88,7 @@ BEGIN
     LTEXT           "",IDC_Pitch,124,96,55,9
     LTEXT           "",IDC_Roll,124,77,55,9
     LTEXT           "Ã»Êý¾Ý",IDC_Yaw,124,57,55,9
-    CONTROL         "",IDC_IMG_DISPLAY,"Static",SS_BLACKFRAME,31,133,207,143
+    CONTROL         "",IDC_IMG_DISPLAY,"Static",SS_BLACKFRAME,77,133,161,143
     PUSHBUTTON      "Æ«º½ÖÃÁã",IDC_BUTTON1,151,39,34,13
     COMBOBOX        IDC_LWING_PORT,48,55,48,30,CBS_DROPDOWN | CBS_SORT | WS_VSCROLL | WS_TABSTOP
     LTEXT           "×ó³á°ò:",IDC_STATIC,16,57,29,8
@@ -175,7 +175,6 @@ END
 //
 
 1                       RT_MANIFEST             "XPStyle.manifest"
-
 
 /////////////////////////////////////////////////////////////////////////////
 //
