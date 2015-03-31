@@ -15,6 +15,8 @@
 /////////////////////////////////////////////////////////////////////////////
 // CEasySerialAssistantDlg dialog
 
+#define VIDEO_PLAYER_EVENT 1
+
 class CEasySerialAssistantDlg : public CDialog
 {
 // Construction
@@ -50,7 +52,7 @@ protected:
 	afx_msg void OnSelchangeBodyPort();
 	afx_msg void OnSelchangeLWingPort();
 	afx_msg void OnSelchangeRWingPort();
-	//afx_msg void OnTimer(UINT nIDEvent);
+	afx_msg void OnTimer(UINT nIDEvent);
 	afx_msg void OnDestroy();
 	//}}AFX_MSG
 	DECLARE_MESSAGE_MAP()
@@ -88,6 +90,12 @@ public:
 	unsigned int		lwing_nCurLen;
 	unsigned int		rwing_nCurLen;
 
+	CRect rect;
+    CStatic* pStc; //标识图像显示的Picture控件
+    CDC* pDC; //视频显示控件设备上下文
+    HDC hDC; //视频显示控件设备句柄
+    CvCapture* capture; //视频获取结构
+
 	int					body_Port;
 	int					lwing_Port;
 	int					rwing_Port;
@@ -114,7 +122,6 @@ public:
 	//afx_msg void OnDeltaposSpinYawseroff(NMHDR *pNMHDR, LRESULT *pResult);
 	
 	//图像显示
-	void ShowImage( IplImage* img, UINT ID );
 	afx_msg void OnBnClickedButton1();
 	afx_msg void OnBnClickedLwingErr();
 	afx_msg void OnBnClickedRwingErr();
@@ -126,6 +133,7 @@ void OnLWingReceiveData(LPVOID pSender,void* pBuf,DWORD InBufferCount);
 void OnRWingReceiveData(LPVOID pSender,void* pBuf,DWORD InBufferCount);
 //串口线程打开或关闭事件
 void OnComBreak(LPVOID pSender,DWORD dwMask,COMSTAT stat);
+
 
 
 //{{AFX_INSERT_LOCATION}}

@@ -37,7 +37,7 @@ string textureFile[4] = {"bg.bmp", "wood2.bmp", "stone.bmp", "stone2.bmp"};
 
 int sliceCount = 20;	//曲面分片数
 
-//ofstream fout("1.txt"); // for debugging
+ofstream fout("1.txt"); // for debugging
 
 
 #ifdef _DEBUG
@@ -58,6 +58,9 @@ CEasySerialAssistantDlg::CEasySerialAssistantDlg(CWnd* pParent /*=NULL*/)
 	//}}AFX_DATA_INIT
 	// Note that LoadIcon does not require a subsequent DestroyIcon in Win32
 	m_hIcon = AfxGetApp()->LoadIcon(IDR_MAINFRAME);
+	pStc = nullptr;
+	pDC = nullptr;
+	capture = nullptr;
 }
 
 void CEasySerialAssistantDlg::DoDataExchange(CDataExchange* pDX)
@@ -77,7 +80,7 @@ BEGIN_MESSAGE_MAP(CEasySerialAssistantDlg, CDialog)
 	ON_CBN_SELCHANGE(IDC_BODY_PORT, OnSelchangeBodyPort)
 	ON_CBN_SELCHANGE(IDC_LWING_PORT, OnSelchangeLWingPort)
 	ON_CBN_SELCHANGE(IDC_RWING_PORT, OnSelchangeRWingPort)
-	//ON_WM_TIMER()
+	ON_WM_TIMER()
 	ON_WM_DESTROY()
 	ON_BN_CLICKED(IDC_BUTTON1, &CEasySerialAssistantDlg::OnBnClickedButton1)
 	ON_BN_CLICKED(IDC_LWING_ERR, &CEasySerialAssistantDlg::OnBnClickedLwingErr)
@@ -134,7 +137,6 @@ BOOL CEasySerialAssistantDlg::OnInitDialog()
 	m_Parity=CComPort::NoParity;
 	m_Stopbits=CComPort::OneStopBit;
 	
-
 	body_ComPort.SetReceiveFunc((FOnReceiveData)OnBodyReceiveData,this); 
 	lwing_ComPort.SetReceiveFunc((FOnReceiveData)OnLWingReceiveData,this);
 	rwing_ComPort.SetReceiveFunc((FOnReceiveData)OnRWingReceiveData,this); 
@@ -162,7 +164,7 @@ BOOL CEasySerialAssistantDlg::OnInitDialog()
 	((CComboBox *)GetDlgItem(IDC_LWING_PORT))->SetCurSel(lwing_Port-1);
 	((CComboBox *)GetDlgItem(IDC_RWING_PORT))->SetCurSel(rwing_Port-1); 
 
-
+	//串口数据变量初始化
 	m_bPortOpen=false;
 	body_bAutoClearn=false;
 	lwing_bAutoClearn=false;
@@ -187,10 +189,17 @@ BOOL CEasySerialAssistantDlg::OnInitDialog()
 	lwing_nCurLen=0;
 	rwing_nCurLen=0;
 
-	m_pWinThread = AfxBeginThread(ProDispThread,this); //创建显示线程
+	//视频控件初始化
+	pStc = (CStatic *)GetDlgItem(IDC_IMG_DISPLAY); //获取Picture控件
+    pStc->GetClientRect(&rect); //将CWind类客户区的坐标点传给矩形
+    pDC = pStc->GetDC(); //得到Picture控件设备上下文
+    hDC = pDC->GetSafeHdc(); //得到控件设备上下文的句柄 
+
+	//创建线程
+	m_pWinThread = AfxBeginThread(ProDispThread,this); //创建UI线程
 	m_pWinThread->m_bAutoDelete = true;
 
-	openglThread = AfxBeginThread(openglProc,GetSafeHwnd());
+	openglThread = AfxBeginThread(openglProc,GetSafeHwnd()); //创建3D模型线程
     openglThread->m_bAutoDelete = true;
 
 
@@ -545,43 +554,6 @@ void OnAhrs_Data(unsigned char data){
 //---------------------------------------------------------------------
 //======================================================================
 
-/*------------- 视频播放功能  ----------------*/
-cv::VideoCapture vidcpt("a.avi");
-IplImage frameget()
-{
-	 cv::Mat img;
-	 vidcpt >> img;
-	 //vidcpt.set(CV_CAP_PROP_POS_FRAMES, vidcpt.get(CV_CAP_PROP_POS_FRAMES)-2);
-	 return IplImage(img);
-}
-
-
-
-////////// 2D图像显示 ////////////
-void CEasySerialAssistantDlg::ShowImage( IplImage* img, UINT ID ) // ID 是Picture Control控件的ID号  
-{  
-    CDC* pDC = GetDlgItem( ID ) ->GetDC();       // 获得显示控件的 DC  
-    HDC hDC = pDC ->GetSafeHdc();                // 获取 HDC(设备句柄) 来进行绘图操作  
-    CRect rect,rect2;  
-      ((CStatic*)GetDlgItem(ID))->GetWindowRect(&rect2);     
-    GetDlgItem(ID) ->GetClientRect( &rect );  
-    int rw = rect.right - rect.left;            // 求出图片控件的宽和高  
-    int rh = rect.bottom - rect.top;  
-    int iw = img->width;                     // 读取图片的宽和高  
-    int ih = img->height;  
-    int tx = (int)(rw - iw)/2;                  // 使图片的显示位置正好在控件的正中  
-    int ty = (int)(rh - ih)/2;  
-    SetRect( rect, tx, ty, tx+iw, ty+ih );  
-    //if(TraceFlag==FALSE)  
-    //    DrawFrame(img,TraceLocation);  
-    CvvImage cimg;  
-	
-    cimg.CopyOf( img );     // 复制图片  
-    cimg.DrawToHDC( hDC, &rect );               // 将图片绘制到显示控件的指定区域内  
-    cvWaitKey(50);  
-    ReleaseDC( pDC );  
-}  
-
 //显示线程
 UINT CEasySerialAssistantDlg::ProDispThread(LPVOID pParam)
 {	
@@ -611,8 +583,8 @@ UINT CEasySerialAssistantDlg::ProDispThread(LPVOID pParam)
 							UART2_Get_IMU();	//取数据
 							//更新显示
 							body_yaw = yaw;
-							body_pitch = pitch;
-							body_roll = roll;
+							body_pitch = -pitch;
+							body_roll = -roll;
 							body_yaw -= body_yaw_err;
 							if (body_yaw < 0) 
 								body_yaw += 360;
@@ -622,7 +594,6 @@ UINT CEasySerialAssistantDlg::ProDispThread(LPVOID pParam)
 							(pParlPro->GetDlgItem(IDC_Roll))->SetWindowText(str);
 							str.Format("偏航角:%.1f",body_yaw);
 							(pParlPro->GetDlgItem(IDC_Yaw))->SetWindowText(str);
-
 						}
 					}//校验是否通过?
 				}
@@ -655,8 +626,6 @@ UINT CEasySerialAssistantDlg::ProDispThread(LPVOID pParam)
 							(pParlPro->GetDlgItem(IDC_Roll2))->SetWindowText(str);
 							str.Format("偏航角:%.1f",lwing_yaw);
 							(pParlPro->GetDlgItem(IDC_Yaw2))->SetWindowText(str);
-
-							//pParlPro->ShowImage(img, IDC_IMG_DISPLAY);	
 						}
 					}//校验是否通过?
 				}
@@ -689,9 +658,6 @@ UINT CEasySerialAssistantDlg::ProDispThread(LPVOID pParam)
 							(pParlPro->GetDlgItem(IDC_Roll3))->SetWindowText(str);
 							str.Format("偏航角:%.1f",rwing_yaw);
 							(pParlPro->GetDlgItem(IDC_Yaw3))->SetWindowText(str);
-
-							//IplImage *img = getState(pitch, roll, yaw);
-							//pParlPro->ShowImage(img, IDC_IMG_DISPLAY);	
 						}
 					}//校验是否通过?
 				}
@@ -966,16 +932,30 @@ void CEasySerialAssistantDlg::OnBnClickedRwingErr()
 }
 
 
-
 void CEasySerialAssistantDlg::OnBnClickedVideoBtn()
 {
 	// TODO: 在此添加控件通知处理程序代码
-	for (int i=0; i<vidcpt.get(CV_CAP_PROP_FRAME_COUNT); i++)
+	capture = cvCaptureFromAVI("a.avi");
+	if (!capture)
 	{
-		cvWaitKey(40);
-		IplImage img = frameget();
-		ShowImage(&img, IDC_IMG_DISPLAY);
-		fout << i << endl;
+		AfxMessageBox("视频打开失败");
+		return;
 	}
-	fout.close();
+	int fps = (int) cvGetCaptureProperty(capture, CV_CAP_PROP_FPS);
+	SetTimer(VIDEO_PLAYER_EVENT, fps, NULL);
+}
+
+
+void CEasySerialAssistantDlg::OnTimer(UINT nIDEvent) 
+{
+    // TODO: Add your message handler code here and/or call default
+    if(nIDEvent == VIDEO_PLAYER_EVENT)
+    {
+        IplImage* img = 0;  
+        img = cvQueryFrame(capture); //从摄像头或者文件中抓取并返回一帧
+        CvvImage m_CvvImage;  
+        m_CvvImage.CopyOf(img, 1); //复制该帧图像    
+        m_CvvImage.DrawToHDC(hDC, &rect); //显示到设备的矩形框内
+    }
+    CDialog::OnTimer(nIDEvent);
 }
